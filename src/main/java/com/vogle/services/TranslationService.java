@@ -9,12 +9,11 @@ import com.vogle.entity.Entry;
 import com.vogle.entity.Translation;
 import com.vogle.repository.EntryRepository;
 import com.vogle.repository.TranslationRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
-
 
 @Service
 public class TranslationService {
@@ -32,25 +31,23 @@ public class TranslationService {
     }
 
     @Transactional
-    public TranslationResponse translate(TranslationRequest request) throws DeepLException, InterruptedException {
-        validateRequest(request);
+    public TranslationResponse translate(TranslationRequest request) {
 
         String text = normalize(request.getText());
         String sourceLang = request.getSourceLanguage().toLowerCase();
         String targetLang = request.getTargetLanguage().toLowerCase();
 
-        // 1. search for entry
+        // 🔹 1. CACHE
         Optional<Entry> entryOpt = entryRepository.findByTermAndLanguage(text, sourceLang);
 
         if (entryOpt.isPresent()) {
             Entry entry = entryOpt.get();
 
-            // 2. Buscar translation (CACHE HIT)
             Optional<Translation> translationOpt =
                     translationRepository.findByEntryIdAndTargetLanguage(entry.getId(), targetLang);
 
             if (translationOpt.isPresent()) {
-                return new TranslationResponse(
+                return buildResponse(
                         text,
                         translationOpt.get().getTranslation(),
                         sourceLang,
@@ -60,27 +57,29 @@ public class TranslationService {
             }
         }
 
-        // 3. CACHE MISS → call API
-        TextResult result = deepLClient.translateText(text, sourceLang, targetLang);
-        String translatedText = result.getText();
+        // 🔹 2. CALL API (correto)
+        String translatedText = callDeepL(text, sourceLang, targetLang);
 
         try {
-            Entry entry = entryOpt.orElseGet(() -> {
-                Entry newEntry = new Entry();
-                newEntry.setTerm(text);
-                newEntry.setLanguage(sourceLang);
-                return entryRepository.save(newEntry);
-            });
+            Entry entry = entryOpt.orElseGet(() ->
+                    entryRepository.save(
+                            Entry.builder()
+                                    .term(text)
+                                    .language(sourceLang)
+                                    .build()
+                    )
+            );
 
-            Translation translation = new Translation();
-            translation.setEntry(entry);
-            translation.setTargetLanguage(targetLang);
-            translation.setTranslation(translatedText);
+            Translation translation = Translation.builder()
+                    .entry(entry)
+                    .targetLanguage(targetLang)
+                    .translation(translatedText)
+                    .build();
 
             translationRepository.save(translation);
 
         } catch (DataIntegrityViolationException e) {
-            //   someone tried to save at the same time → search again
+
             Entry entry = entryRepository
                     .findByTermAndLanguage(text, sourceLang)
                     .orElseThrow();
@@ -89,7 +88,7 @@ public class TranslationService {
                     .findByEntryIdAndTargetLanguage(entry.getId(), targetLang)
                     .orElseThrow();
 
-            return new TranslationResponse(
+            return buildResponse(
                     text,
                     translation.getTranslation(),
                     sourceLang,
@@ -98,31 +97,27 @@ public class TranslationService {
             );
         }
 
-        return new TranslationResponse(
-                text,
-                translatedText,
-                sourceLang,
-                targetLang,
-                false
-        );
+        return buildResponse(text, translatedText, sourceLang, targetLang, false);
+    }
+
+    private String callDeepL(String text, String source, String target) {
+        try {
+            TextResult result = deepLClient.translateText(text, source, target);
+            return result.getText();
+        } catch (DeepLException | InterruptedException e) {
+            throw new RuntimeException("Error calling DeepL API", e);
+        }
     }
 
     private String normalize(String text) {
         return text.trim().toLowerCase();
     }
 
-    private void validateRequest(TranslationRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
-        }
-        if (request.getText() == null || request.getText().isBlank()) {
-            throw new IllegalArgumentException("Field 'text' is required");
-        }
-        if (request.getSourceLanguage() == null || request.getSourceLanguage().isBlank()) {
-            throw new IllegalArgumentException("Field 'sourceLanguage' is required");
-        }
-        if (request.getTargetLanguage() == null || request.getTargetLanguage().isBlank()) {
-            throw new IllegalArgumentException("Field 'targetLanguage' is required");
-        }
+    private TranslationResponse buildResponse(String original,
+                                              String translated,
+                                              String source,
+                                              String target,
+                                              boolean fromCache) {
+        return new TranslationResponse(original, translated, source, target, fromCache);
     }
 }
