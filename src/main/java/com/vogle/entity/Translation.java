@@ -5,6 +5,11 @@ import java.util.UUID;
 
 import lombok.*;
 
+/**
+ * Represents the translation of an Entry into a target language.
+ * Translations are cached to avoid unnecessary external API calls.
+ */
+
 @Entity
 @Table(
         name = "translations",
@@ -19,9 +24,10 @@ import lombok.*;
 public class Translation {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    // Source entry being translated.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "entry_id", nullable = false)
     private Entry entry;
@@ -29,6 +35,9 @@ public class Translation {
     @Column(name = "target_language", nullable = false)
     private String targetLanguage;
 
-    @Column(nullable = false)
-    private String translation;
+    @Column(name = "translated_term", nullable = false)
+    private String translatedTerm;
+
+    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
+    private java.time.LocalDateTime createdAt;
 }

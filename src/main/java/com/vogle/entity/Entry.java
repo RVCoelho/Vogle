@@ -8,6 +8,12 @@ import java.util.UUID;
 
 import lombok.*;
 
+/**
+ * Represents a vocabulary term in a specific language.
+ * An Entry is shared between users and can have translations
+ * into multiple target languages.
+ */
+
 @Entity
 @Table(
         name = "entries",
@@ -22,7 +28,7 @@ import lombok.*;
 public class Entry {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
@@ -33,12 +39,18 @@ public class Entry {
 
     private String grammaticalClass;
 
-    @Builder.Default
+    // Cached translations of this term.
     @OneToMany(
+            // specifies the field in the Translation entity that owns the relationship
+            // This indicates that the "entry" field in Translation is the owning side of the bidirectional relationship
             mappedBy = "entry",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
+//            cascade = CascadeType.ALL,
             fetch = FetchType.LAZY
     )
     private List<Translation> translations = new ArrayList<>();
+
+    // Users who have saved this entry.
+    @OneToMany(mappedBy = "entry")
+    private List<UserEntry> userEntries = new ArrayList<>();
+
 }

@@ -37,7 +37,7 @@ public class TranslationService {
         String sourceLang = request.getSourceLanguage().toLowerCase();
         String targetLang = request.getTargetLanguage().toLowerCase();
 
-        // 🔹 1. CACHE
+        // 1. CACHE
         Optional<Entry> entryOpt = entryRepository.findByTermAndLanguage(text, sourceLang);
 
         if (entryOpt.isPresent()) {
@@ -49,7 +49,7 @@ public class TranslationService {
             if (translationOpt.isPresent()) {
                 return buildResponse(
                         text,
-                        translationOpt.get().getTranslation(),
+                        translationOpt.get().getTranslatedTerm(),
                         sourceLang,
                         targetLang,
                         true
@@ -57,7 +57,7 @@ public class TranslationService {
             }
         }
 
-        // 🔹 2. CALL API (correto)
+        // 2. CALL API
         String translatedText = callDeepL(text, sourceLang, targetLang);
 
         try {
@@ -73,7 +73,7 @@ public class TranslationService {
             Translation translation = Translation.builder()
                     .entry(entry)
                     .targetLanguage(targetLang)
-                    .translation(translatedText)
+                    .translatedTerm(translatedText)
                     .build();
 
             translationRepository.save(translation);
@@ -90,7 +90,7 @@ public class TranslationService {
 
             return buildResponse(
                     text,
-                    translation.getTranslation(),
+                    translation.getTranslatedTerm(),
                     sourceLang,
                     targetLang,
                     true

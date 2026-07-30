@@ -7,6 +7,12 @@ import java.util.UUID;
 
 import lombok.*;
 
+/**
+ * Represents a vocabulary item saved by a user.
+ * It links a user to an Entry within one of their learning languages
+ * and stores user-specific information such as notes and save date.
+ */
+
 @Entity
 @Table(
         name = "user_entries",
@@ -23,17 +29,23 @@ import lombok.*;
 public class UserEntry {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    // User who saved the vocabulary item.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "entry_id", nullable = false)
-    private UUID entryId;
+    // Saved vocabulary entry.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "entry_id", nullable = false)
+    private Entry entry;
 
-    @Column(name = "learning_language_id", nullable = false)
-    private UUID learningLanguageId;
+    // Learning language to which this vocabulary belongs.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "learning_language_id", nullable = false)
+    private LearningLanguage learningLanguage;
 
     private String notes;
 
@@ -41,7 +53,10 @@ public class UserEntry {
     private LocalDateTime dateAdded;
 
     @PrePersist
-    public void prePersist() {
-        this.dateAdded = LocalDateTime.now();
+    void onCreate() {
+        if (dateAdded == null) {
+            dateAdded = LocalDateTime.now();
+        }
     }
+
 }
