@@ -2,6 +2,9 @@ package com.vogle.services;
 
 import com.vogle.dto.UserEntryRequest;
 import com.vogle.dto.UserEntryResponse;
+import com.vogle.entity.Entry;
+import com.vogle.entity.LearningLanguage;
+import com.vogle.entity.User;
 import com.vogle.entity.UserEntry;
 import com.vogle.exception.DuplicateResourceException;
 import com.vogle.repository.UserEntryRepository;
@@ -31,10 +34,19 @@ public class UserEntryService {
             throw new DuplicateResourceException("Word already saved for this language");
         }
 
+        User user = new User();
+        user.setId(request.getUserId());
+
+        Entry entry = new Entry();
+        entry.setId(request.getEntryId());
+
+        LearningLanguage learningLanguage = new LearningLanguage();
+        learningLanguage.setId(request.getLearningLanguageId());
+
         UserEntry entity = UserEntry.builder()
-                .userId(request.getUserId())
-                .entryId(request.getEntryId())
-                .learningLanguageId(request.getLearningLanguageId())
+                .user(user)
+                .entry(entry)
+                .learningLanguage(learningLanguage)
                 .notes(request.getNotes())
                 .build();
 
@@ -42,8 +54,8 @@ public class UserEntryService {
 
         return new UserEntryResponse(
                 saved.getId(),
-                saved.getEntryId(),
-                saved.getLearningLanguageId(),
+                saved.getEntry().getId(),
+                saved.getLearningLanguage().getId(),
                 saved.getNotes(),
                 saved.getDateAdded()
         );
