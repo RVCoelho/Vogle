@@ -2,6 +2,7 @@
 
 Backend API for a personal multilingual dictionary application focused
 on structured vocabulary learning and efficient translation reuse.
+Though for now it's mostly just a simple translating API.
 
 ------------------------------------------------------------------------
 
