@@ -9,9 +9,9 @@ on structured vocabulary learning and efficient translation reuse.
 
 ### Prerequisites
 
--   Java 17+
--   Maven
--   PostgreSQL (or Supabase)
+-   Docker
+-   Docker Compose
+-   A DeepL API key
 
 ------------------------------------------------------------------------
 
@@ -24,29 +24,35 @@ git clone https://github.com/RVCoelho/vogle-api.git
 cd vogle-api
 ```
 
-2.  Configure environment variables (recommended):
+2.  Configure the DeepL API key:
 
-Create a config file (e.g., `application-local.yml`) or use environment
-variables:
+Create a `.env` file in the project root:
 
-``` yaml
-spring:
-  datasource:
-    url: YOUR_DB_URL
-    username: YOUR_DB_USER
-    password: YOUR_DB_PASSWORD
+``` env
+DEEPL_API_KEY=your_deepl_api_key
 ```
 
-3.  Run the application:
+3.  Build and start the application and database:
 
-``` bash
-mvn spring-boot:run
+```bash
+docker compose up --build
+```
+
+The API is available at `http://localhost:8080`.
+
+4.  Stop the services:
+
+```bash
+docker compose down
 ```
 
 ------------------------------------------------------------------------
 
 ###  Database
 
+-   PostgreSQL runs in the `vogle-postgres` container
+-   Database credentials are configured by `compose.yaml`
+-   Data is persisted in the `postgres-data` Docker volume
 -   Managed via Flyway
 -   Migrations run automatically on startup
 
@@ -93,7 +99,8 @@ Response:
 ##  Tech Stack
 
 -   Java + Spring Boot
--   PostgreSQL (Supabase)
+-   PostgreSQL
+-   Docker Compose
 -   JPA / Hibernate
 -   Flyway
 
