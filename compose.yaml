@@ -1,0 +1,40 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: vogle-postgres
+    environment:
+      POSTGRES_DB: vogle
+      POSTGRES_USER: vogle
+      POSTGRES_PASSWORD: vogle
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vogle -d vogle"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vogle-backend
+    environment:
+      ACTIVE_PROFILE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DATABASE: vogle
+      DB_USER: vogle
+      DB_PASSWORD: vogle
+      DEEPL_API_KEY: ${DEEPL_API_KEY}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
